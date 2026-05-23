@@ -1,0 +1,221 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="UniTicket — Detalle de incidencia técnica.">
+  <meta name="robots" content="noindex">
+  <title>UniTicket — Detalle de ticket</title>
+  <link rel="stylesheet" href="../css/style.css">
+  <style>
+    .back-link { display:inline-flex; align-items:center; gap:.4rem; color:var(--primary);
+      font-size:13px; font-weight:500; text-decoration:none; margin-bottom:1.5rem;
+      transition:color .15s; }
+    .back-link:hover { color:var(--accent); }
+    .ticket-id { font-family:'Syne',sans-serif; font-size:1rem; color:var(--text-muted); margin-bottom:.3rem; }
+    .ticket-title { font-family:'Syne',sans-serif; font-size:1.6rem; font-weight:800; color:var(--primary); margin-bottom:.5rem; }
+    .section-title { font-family:'Syne',sans-serif; font-size:1.1rem; font-weight:700; color:var(--primary); margin:1.5rem 0 .8rem; }
+    .tech-panel { border:2px solid var(--primary); border-radius:var(--radius); padding:1.5rem; margin-top:2rem; background:var(--bg-card); }
+    .tech-panel-title { font-family:'Syne',sans-serif; font-size:1rem; font-weight:700; color:var(--primary);
+      margin-bottom:1rem; display:flex; align-items:center; gap:.5rem; }
+    .tech-badge { background:var(--primary); color:#fff; font-size:10px; padding:2px 8px;
+      border-radius:20px; font-weight:600; text-transform:uppercase; }
+    .grid-2 { display:grid; grid-template-columns:1fr 1fr; gap:1rem; }
+    @media(max-width:600px){ .grid-2{grid-template-columns:1fr;} }
+    .desc-box { background:#f5f2ee; border-radius:var(--radius-sm); padding:1rem 1.2rem;
+      font-size:14px; line-height:1.7; color:var(--text); border-left:4px solid var(--primary); }
+    .history-item { border-left:3px solid var(--border); padding:.6rem 1rem; margin-bottom:.6rem;
+      font-size:13px; color:var(--text-muted); position:relative; }
+    .history-item::before { content:''; position:absolute; left:-6px; top:12px;
+      width:9px; height:9px; border-radius:50%; background:var(--border); }
+    .history-item.resolved::before { background:var(--status-resolved); }
+    .history-item.progress::before { background:var(--status-progress); }
+    .history-item.open::before { background:var(--status-open); }
+  </style>
+</head>
+<body>
+  <a href="#main" class="skip-link">Saltar al contenido</a>
+
+  <header role="banner">
+    <nav class="navbar" id="navbar" aria-label="Barra de navegación"></nav>
+  </header>
+
+  <main class="container" id="main" role="main">
+    <a href="dashboard.html" class="back-link" aria-label="Volver al dashboard">
+      ← <span>Volver al dashboard</span>
+    </a>
+
+    <div id="ticket-content">
+      <!-- Se renderiza por JS -->
+    </div>
+  </main>
+
+  <script src="../js/app.js"></script>
+  <script>
+    const session = requireAuth();
+    if (!session) throw new Error('No auth');
+
+    renderNavbar(session);
+    applyLang();
+
+    const params = new URLSearchParams(window.location.search);
+    const ticketId = params.get('id');
+
+    function render() {
+      const ticket = getTicketById(ticketId);
+      if (!ticket) {
+        document.getElementById('ticket-content').innerHTML = `
+          <div class="card" style="text-align:center;padding:3rem">
+            <p style="color:var(--text-muted)">Ticket no encontrado.</p>
+            <a href="dashboard.html" class="btn btn-primary" style="margin-top:1rem">Volver</a>
+          </div>`;
+        return;
+      }
+
+      const isTech = session.role === 'technician' || session.role === 'admin';
+      const canEdit = isTech && ticket.status !== 'resolved';
+
+      document.title = `UniTicket — Ticket #${ticket.id}`;
+
+      document.getElementById('ticket-content').innerHTML = `
+        <div class="ticket-id" aria-label="Número de ticket">Ticket #${ticket.id}</div>
+        <h1 class="ticket-title">${sanitize(ticket.equipmentId)} — ${sanitize(ticket.location)}</h1>
+
+        <div class="card">
+          <div class="detail-header">
+            <div>${statusBadge(ticket.status)}</div>
+            <div style="font-size:13px;color:var(--text-muted)">
+              ${t('reporter')}: <strong>${sanitize(ticket.reporterName)}</strong>
+              &nbsp;·&nbsp; ${t('reportDate')}: <strong>${formatDate(ticket.date)}</strong>
+            </div>
+          </div>
+
+          <div class="detail-meta" role="list" aria-label="Detalles del ticket">
+            <div class="meta-item" role="listitem">
+              <strong>${t('location')}</strong>
+              ${sanitize(ticket.location)}
+            </div>
+            <div class="meta-item" role="listitem">
+              <strong>${t('equipmentId')}</strong>
+              <code style="background:#f0ede8;padding:2px 8px;border-radius:4px">${sanitize(ticket.equipmentId)}</code>
+            </div>
+            <div class="meta-item" role="listitem">
+              <strong>${t('assignedTo')}</strong>
+              ${ticket.assignedTo ? sanitize(ticket.assignedTo) : '<span style="color:var(--text-muted)">Sin asignar</span>'}
+            </div>
+            <div class="meta-item" role="listitem">
+              <strong>${t('status')}</strong>
+              ${statusBadge(ticket.status)}
+            </div>
+          </div>
+
+          <p class="section-title">${t('description')}</p>
+          <div class="desc-box" aria-label="Descripción del problema">${sanitize(ticket.description)}</div>
+
+          ${ticket.note ? `
+            <p class="section-title">Nota de resolución</p>
+            <div class="note-box" aria-label="Nota de resolución" role="note">
+              <strong>🔧 ${ticket.assignedTo || 'Técnico'}:</strong><br>
+              ${sanitize(ticket.note)}
+            </div>
+          ` : ''}
+        </div>
+
+        <!-- Historial de estados -->
+        <p class="section-title">Historial</p>
+        <div aria-label="Historial de cambios" role="log">
+          <div class="history-item open">
+            <strong>Ticket creado</strong> por ${sanitize(ticket.reporterName)} — ${formatDate(ticket.date)}
+          </div>
+          ${ticket.status === 'progress' || ticket.status === 'resolved' ? `
+            <div class="history-item progress">
+              <strong>Estado cambiado a En progreso</strong> — asignado a ${sanitize(ticket.assignedTo || '—')}
+            </div>` : ''}
+          ${ticket.status === 'resolved' ? `
+            <div class="history-item resolved">
+              <strong>Ticket resuelto</strong> por ${sanitize(ticket.assignedTo || '—')}
+              ${ticket.note ? `<br><em>${sanitize(ticket.note)}</em>` : ''}
+            </div>` : ''}
+        </div>
+
+        <!-- Panel técnico -->
+        ${isTech ? `
+          <div class="tech-panel" role="region" aria-label="Panel de técnico">
+            <div class="tech-panel-title">
+              🔧 Panel de Técnico
+              <span class="tech-badge">Solo técnicos</span>
+            </div>
+
+            <form id="tech-form" novalidate>
+              <div class="grid-2">
+                <div class="form-group">
+                  <label for="tech-status">${t('changeStatus')}</label>
+                  <select id="tech-status" aria-label="Cambiar estado del ticket">
+                    <option value="open" ${ticket.status==='open'?'selected':''}>🔴 ${t('open')}</option>
+                    <option value="progress" ${ticket.status==='progress'?'selected':''}>🟡 ${t('inProgress')}</option>
+                    <option value="resolved" ${ticket.status==='resolved'?'selected':''}>🟢 ${t('resolved')}</option>
+                  </select>
+                </div>
+                <div class="form-group">
+                  <label for="tech-assigned">Técnico asignado</label>
+                  <input type="text" id="tech-assigned" value="${sanitize(ticket.assignedTo || session.name)}"
+                    placeholder="Nombre del técnico" maxlength="60">
+                </div>
+              </div>
+              <div class="form-group">
+                <label for="tech-note">${t('addNote')}</label>
+                <textarea id="tech-note" placeholder="Describe qué se hizo para resolver la falla..."
+                  maxlength="500" aria-describedby="note-err">${sanitize(ticket.note || '')}</textarea>
+                <span class="form-error" id="note-err" role="alert">La nota es obligatoria al resolver el ticket</span>
+              </div>
+              <div style="display:flex;gap:.7rem;flex-wrap:wrap">
+                <button type="submit" class="btn btn-success" aria-label="Guardar cambios del ticket">
+                  ✓ ${t('save')} cambios
+                </button>
+                <a href="dashboard.html" class="btn btn-outline">${t('cancel')}</a>
+              </div>
+            </form>
+          </div>
+        ` : ''}
+
+        ${!isTech && ticket.status !== 'resolved' ? `
+          <div class="card" style="margin-top:1rem;text-align:center;color:var(--text-muted);font-size:14px">
+            Tu ticket está siendo gestionado. Recibirás una notificación cuando sea actualizado.
+          </div>
+        ` : ''}
+      `;
+
+      // Evento formulario técnico
+      const techForm = document.getElementById('tech-form');
+      if (techForm) {
+        techForm.addEventListener('submit', function(e) {
+          e.preventDefault();
+          const newStatus = document.getElementById('tech-status').value;
+          const note = document.getElementById('tech-note').value.trim();
+          const assigned = document.getElementById('tech-assigned').value.trim();
+          const noteErr = document.getElementById('note-err');
+
+          if (newStatus === 'resolved' && !note) {
+            noteErr.classList.add('show');
+            document.getElementById('tech-note').focus();
+            return;
+          }
+          noteErr.classList.remove('show');
+
+          updateTicket(ticket.id, {
+            status: newStatus,
+            note: sanitize(note),
+            assignedTo: sanitize(assigned || session.name)
+          });
+
+          showToast(t('ticketUpdated'), 'success');
+          sendNotification('UniTicket — Ticket actualizado', `#${ticket.id} → ${newStatus}`);
+          setTimeout(() => render(), 500);
+        });
+      }
+    }
+
+    render();
+  </script>
+</body>
+</html>

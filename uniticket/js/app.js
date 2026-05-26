@@ -90,7 +90,7 @@ const i18n = {
     ticketCreated: 'Ticket created successfully',
     ticketUpdated: 'Ticket updated',
     loginError: 'Invalid email or password',
-      required: 'This field is required',
+    required: 'This field is required',
     technician: 'Technician',
     standard: 'Standard user',
     admin: 'Administrator',
@@ -132,10 +132,10 @@ function applyLang() {
 
 // ── USUARIOS DEMO ──
 const USERS = [
-  { id: 1, name: 'Carlos Muñoz', email: 'carlos@univalle.edu.co', password: '123456', role: 'standard' },
-  { id: 2, name: 'Prof. Laura Gómez', email: 'laura@univalle.edu.co', password: '123456', role: 'standard' },
-  { id: 3, name: 'Jorge Herrera', email: 'jorge@univalle.edu.co', password: 'tecnico123', role: 'technician' },
-  { id: 4, name: 'Sandra Ríos', email: 'sandra@univalle.edu.co', password: 'admin123', role: 'admin' },
+  { id: 1, name: 'Carlos Muñoz', email: 'carlos@correounivalle.edu.co', password: '123456', role: 'standard' },
+  { id: 2, name: 'Prof. Laura Gómez', email: 'laura@correounivalle.edu.co', password: '123456', role: 'standard' },
+  { id: 3, name: 'Jorge Herrera', email: 'jorge@correounivalle.edu.co', password: 'tecnico123', role: 'technician' },
+  { id: 4, name: 'Sandra Ríos', email: 'sandra@correounivalle.edu.co', password: 'admin123', role: 'admin' },
 ];
 
 // ── USUARIOS REGISTRADOS ──
@@ -333,4 +333,65 @@ function sanitize(str) {
   const div = document.createElement('div');
   div.appendChild(document.createTextNode(str));
   return div.innerHTML;
+}
+
+// ── ACCESIBILIDAD ──
+function initAccessibility() {
+  if (localStorage.getItem('ut_high_contrast') === '1') document.body.classList.add('high-contrast');
+  if (localStorage.getItem('ut_large_text') === '1') document.body.classList.add('large-text');
+  renderA11yWidget();
+}
+
+function toggleHighContrast() {
+  const on = document.body.classList.toggle('high-contrast');
+  localStorage.setItem('ut_high_contrast', on ? '1' : '0');
+  updateA11yBtns();
+}
+
+function toggleLargeText() {
+  const on = document.body.classList.toggle('large-text');
+  localStorage.setItem('ut_large_text', on ? '1' : '0');
+  updateA11yBtns();
+}
+
+function renderA11yWidget() {
+  const existing = document.getElementById('a11y-widget');
+  if (existing) return;
+  const widget = document.createElement('div');
+  widget.className = 'a11y-widget';
+  widget.id = 'a11y-widget';
+  widget.innerHTML = `
+    <div class="a11y-panel" id="a11y-panel">
+      <button class="a11y-btn" id="btn-contrast" onclick="toggleHighContrast()" aria-pressed="false">
+        ◑ Sin colores
+      </button>
+      <button class="a11y-btn" id="btn-text" onclick="toggleLargeText()" aria-pressed="false">
+        A+ Texto grande
+      </button>
+    </div>
+    <button class="a11y-toggle" onclick="toggleA11yPanel()" aria-label="Opciones de accesibilidad" aria-expanded="false">
+      ♿
+    </button>
+  `;
+  document.body.appendChild(widget);
+  updateA11yBtns();
+}
+
+function toggleA11yPanel() {
+  const panel = document.getElementById('a11y-panel');
+  const btn = document.querySelector('.a11y-toggle');
+  const isOpen = panel.classList.toggle('open');
+  btn.setAttribute('aria-expanded', isOpen);
+}
+
+function updateA11yBtns() {
+  const btnContrast = document.getElementById('btn-contrast');
+  const btnText = document.getElementById('btn-text');
+  if (!btnContrast || !btnText) return;
+  const hc = document.body.classList.contains('high-contrast');
+  const lt = document.body.classList.contains('large-text');
+  btnContrast.classList.toggle('active', hc);
+  btnContrast.setAttribute('aria-pressed', hc);
+  btnText.classList.toggle('active', lt);
+  btnText.setAttribute('aria-pressed', lt);
 }

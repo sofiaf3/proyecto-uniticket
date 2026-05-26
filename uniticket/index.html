@@ -51,16 +51,16 @@
       <div class="form-panel active" id="panel-login">
         <div class="login-hint" role="note">
           <strong>Cuentas demo:</strong><br>
-          👤 carlos@univalle.edu.co / 123456 (Estándar)<br>
-          🔧 jorge@univalle.edu.co / tecnico123 (Técnico)<br>
-          ⚙️ sandra@univalle.edu.co / admin123 (Admin)
+          👤 carlos@correounivalle.edu.co / 123456 (Estándar)<br>
+          🔧 jorge@correounivalle.edu.co / tecnico123 (Técnico)<br>
+          ⚙️ sandra@correounivalle.edu.co / admin123 (Admin)
         </div>
 
         <form id="login-form" novalidate>
           <div class="form-group">
             <label for="email">Correo electrónico</label>
             <input type="email" id="email" name="email" autocomplete="email"
-              placeholder="usuario@univalle.edu.co" required
+              placeholder="usuario@correounivalle.edu.co" required
               aria-required="true" aria-describedby="email-error">
             <span class="form-error" id="email-error" role="alert">Este campo es obligatorio</span>
           </div>
@@ -79,7 +79,7 @@
       <!-- REGISTRO -->
       <div class="form-panel" id="panel-register">
         <div class="univalle-note" role="note">
-          🎓 Solo se permiten correos institucionales <strong>@univalle.edu.co</strong>
+          🎓 Solo se permiten correos institucionales <strong>@correounivalle.edu.co</strong>
         </div>
 
         <form id="register-form" novalidate>
@@ -91,9 +91,9 @@
           </div>
           <div class="form-group">
             <label for="reg-email">Correo institucional</label>
-            <input type="email" id="reg-email" placeholder="usuario@univalle.edu.co" required
+            <input type="email" id="reg-email" placeholder="usuario@correounivalle.edu.co" required
               aria-required="true" aria-describedby="reg-email-error">
-            <span class="form-error" id="reg-email-error" role="alert">Debe ser un correo @univalle.edu.co</span>
+            <span class="form-error" id="reg-email-error" role="alert">Debe ser un correo @correounivalle.edu.co</span>
           </div>
           <div class="form-group">
             <label for="reg-password">Contraseña</label>
@@ -119,7 +119,13 @@
   <script src="js/app.js"></script>
   <script>
     if (getSession()) window.location.href = 'pages/dashboard.html';
-    initEmailJS();
+    initAccessibility();
+
+    // Esperar a que EmailJS cargue completamente
+    window.addEventListener('load', function() {
+      initEmailJS();
+      console.log('EmailJS inicializado');
+    });
 
     function switchTab(tab) {
       document.getElementById('panel-login').classList.toggle('active', tab === 'login');
@@ -169,7 +175,7 @@
       regErr.style.display = 'none';
 
       if (!name) { document.getElementById('reg-name-error').classList.add('show'); valid = false; }
-      if (!email || !email.endsWith('@univalle.edu.co')) {
+      if (!email || !email.endsWith('@correounivalle.edu.co')) {
         document.getElementById('reg-email-error').classList.add('show'); valid = false;
       }
       if (!pass || pass.length < 6) { document.getElementById('reg-pass-error').classList.add('show'); valid = false; }
@@ -183,12 +189,26 @@
         return;
       }
 
-      // Enviar correo de bienvenida
-      sendWelcomeEmail(name, email);
-
-      // Iniciar sesión automáticamente
+      // Enviar correo de bienvenida y esperar antes de redirigir
+      console.log('Enviando correo de bienvenida a:', email);
       setSession({ id: result.user.id, name: result.user.name, email: result.user.email, role: result.user.role });
-      window.location.href = 'pages/dashboard.html';
+      
+      if (typeof emailjs !== 'undefined') {
+        emailjs.send('service_rz9r1we', 'template_c8unn8d', {
+          to_name: name,
+          to_email: email,
+          name: name,
+          email: email,
+        }).then(() => {
+          console.log('Correo de bienvenida enviado');
+          window.location.href = 'pages/dashboard.html';
+        }).catch(err => {
+          console.warn('Error enviando bienvenida:', err);
+          window.location.href = 'pages/dashboard.html';
+        });
+      } else {
+        window.location.href = 'pages/dashboard.html';
+      }
     });
 
     function toggleLangLogin() {

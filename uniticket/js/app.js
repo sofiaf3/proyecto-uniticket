@@ -43,6 +43,16 @@ const i18n = {
     notifTitle: 'UniTicket — Nuevo ticket',
     notifAllow: 'Permitir notificaciones para recibir alertas',
     welcomeBack: 'Bienvenido/a de vuelta',
+    dashboardSubtitle: 'Resumen de incidencias técnicas',
+    viewBtn: 'Ver',
+    historyCreated: 'Ticket creado por',
+    historyProgress: 'Estado cambiado a En progreso — asignado a',
+    historyResolved: 'Ticket resuelto por',
+    descPlaceholder: 'Describe la falla con el mayor detalle posible...',
+    unassigned: 'Sin asignar',
+    beingManaged: 'Tu ticket está siendo gestionado. Recibirás una notificación cuando sea actualizado.',
+    technicianAssigned: 'Técnico asignado',
+    saveChanges: 'Guardar cambios',
   },
   en: {
     appName: 'UniTicket',
@@ -87,6 +97,16 @@ const i18n = {
     notifTitle: 'UniTicket — New ticket',
     notifAllow: 'Allow notifications to receive alerts',
     welcomeBack: 'Welcome back',
+    dashboardSubtitle: 'Technical incidents summary',
+    viewBtn: 'View',
+    historyCreated: 'Ticket created by',
+    historyProgress: 'Status changed to In progress — assigned to',
+    historyResolved: 'Ticket resolved by',
+    descPlaceholder: 'Describe the issue in as much detail as possible...',
+    unassigned: 'Unassigned',
+    beingManaged: 'Your ticket is being managed. You will receive a notification when it is updated.',
+    technicianAssigned: 'Assigned technician',
+    saveChanges: 'Save changes',
   }
 };
 
@@ -198,6 +218,35 @@ function showToast(msg, type = '') {
   toast.textContent = msg;
   container.appendChild(toast);
   setTimeout(() => toast.remove(), 3500);
+}
+
+// ── EMAILJS ──
+const EMAILJS_SERVICE_ID = 'service_rz9r1we';
+const EMAILJS_TEMPLATE_ID = 'template_l6xzzyn';
+const EMAILJS_PUBLIC_KEY = 'jSVsh0qTopZRu2in5';
+
+function initEmailJS() {
+  if (typeof emailjs !== 'undefined') {
+    emailjs.init(EMAILJS_PUBLIC_KEY);
+  }
+}
+
+function sendTicketEmail(ticket) {
+  if (typeof emailjs === 'undefined') return;
+  const templateParams = {
+    to_name: 'Equipo Técnico',
+    ticket_id: ticket.id,
+    equipment_id: ticket.equipmentId,
+    location: ticket.location,
+    description: ticket.description,
+    reporter_name: ticket.reporterName,
+    report_date: formatDate(ticket.date),
+    name: ticket.reporterName,
+    email: 'laurarias007@gmail.com',
+  };
+  emailjs.send(EMAILJS_SERVICE_ID, EMAILJS_TEMPLATE_ID, templateParams)
+    .then(() => console.log('Correo enviado correctamente'))
+    .catch(err => console.warn('Error enviando correo:', err));
 }
 
 // ── NOTIFICACIONES PUSH ──

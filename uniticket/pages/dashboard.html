@@ -239,7 +239,7 @@
       });
 
       sendNotification(t('notifTitle'), `${ticket.equipmentId} — ${ticket.location}`);
-      sendTicketEmail(ticket);
+      sendTicketEmail(ticket, session.email);
       showToast(t('ticketCreated'), 'success');
       closeModal();
       renderStats();

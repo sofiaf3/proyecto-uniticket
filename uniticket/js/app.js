@@ -138,6 +138,31 @@ const USERS = [
   { id: 4, name: 'Sandra Ríos', email: 'sandra@univalle.edu.co', password: 'admin123', role: 'admin' },
 ];
 
+// ── USUARIOS REGISTRADOS ──
+function getRegisteredUsers() {
+  try { return JSON.parse(localStorage.getItem('ut_registered_users')) || []; }
+  catch { return []; }
+}
+function saveRegisteredUsers(users) {
+  localStorage.setItem('ut_registered_users', JSON.stringify(users));
+}
+function registerUser(name, email, password) {
+  const users = getRegisteredUsers();
+  if (users.find(u => u.email === email)) return { ok: false, msg: 'Este correo ya está registrado.' };
+  const newUser = { id: Date.now(), name, email, password, role: 'standard' };
+  users.push(newUser);
+  saveRegisteredUsers(users);
+  return { ok: true, user: newUser };
+}
+function findUser(email, password) {
+  // Primero busca en usuarios demo
+  const demo = USERS.find(u => u.email === email && u.password === password);
+  if (demo) return demo;
+  // Luego en usuarios registrados
+  const registered = getRegisteredUsers().find(u => u.email === email && u.password === password);
+  return registered || null;
+}
+
 // ── AUTH ──
 function getSession() {
   try { return JSON.parse(localStorage.getItem('ut_session')); } catch { return null; }
@@ -223,6 +248,7 @@ function showToast(msg, type = '') {
 // ── EMAILJS ──
 const EMAILJS_SERVICE_ID = 'service_rz9r1we';
 const EMAILJS_TEMPLATE_ID = 'template_l6xzzyn';
+const EMAILJS_WELCOME_TEMPLATE_ID = 'template_c8unn8d';
 const EMAILJS_PUBLIC_KEY = 'jSVsh0qTopZRu2in5';
 
 function initEmailJS() {
@@ -231,10 +257,11 @@ function initEmailJS() {
   }
 }
 
-function sendTicketEmail(ticket) {
+function sendTicketEmail(ticket, toEmail) {
   if (typeof emailjs === 'undefined') return;
   const templateParams = {
     to_name: 'Equipo Técnico',
+    to_email: toEmail || 'laurarias007@gmail.com',
     ticket_id: ticket.id,
     equipment_id: ticket.equipmentId,
     location: ticket.location,
@@ -242,11 +269,23 @@ function sendTicketEmail(ticket) {
     reporter_name: ticket.reporterName,
     report_date: formatDate(ticket.date),
     name: ticket.reporterName,
-    email: 'laurarias007@gmail.com',
+    email: toEmail || 'laurarias007@gmail.com',
   };
   emailjs.send(EMAILJS_SERVICE_ID, EMAILJS_TEMPLATE_ID, templateParams)
-    .then(() => console.log('Correo enviado correctamente'))
-    .catch(err => console.warn('Error enviando correo:', err));
+    .then(() => console.log('Correo de ticket enviado'))
+    .catch(err => console.warn('Error enviando correo de ticket:', err));
+}
+
+function sendWelcomeEmail(name, email) {
+  if (typeof emailjs === 'undefined') return;
+  emailjs.send(EMAILJS_SERVICE_ID, EMAILJS_WELCOME_TEMPLATE_ID, {
+    to_name: name,
+    to_email: email,
+    name: name,
+    email: email,
+  })
+    .then(() => console.log('Correo de bienvenida enviado'))
+    .catch(err => console.warn('Error enviando bienvenida:', err));
 }
 
 // ── NOTIFICACIONES PUSH ──
